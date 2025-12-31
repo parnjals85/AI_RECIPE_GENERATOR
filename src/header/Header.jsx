@@ -1,24 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Menu, X } from "lucide-react";
-import { Link, useNavigate , useLocation } from "react-router-dom";
-import Logo from "../header/Logo.png";
+import { Link } from "react-router-dom";
+import { useAuth0 } from "@auth0/auth0-react";
 
 export default function Navbar() {
-  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const location = useLocation();
-  useEffect(() => {
-    const token = localStorage.getItem("authtoken");
-    setIsLoggedIn(!!token); // true if token exists
-  }, [location.pathname]);
-
-  const handleLogout = () => {
-    localStorage.removeItem("authtoken");
-    setIsLoggedIn(false); // update state
-    navigate("/login");
-  };
 
   const navItems = [
     { name: "Create", link: "/create" },
@@ -28,26 +15,32 @@ export default function Navbar() {
     { name: "Contact", link: "/contact" },
   ];
 
+  const { isAuthenticated, loginWithRedirect, logout: auth0Logout, isLoading } = useAuth0();
+
+  const login = () => loginWithRedirect();
+  const signup = () =>
+    loginWithRedirect({ authorizationParams: { screen_hint: "signup" } });
+
+  const logout = () =>
+    auth0Logout({ logoutParams: { returnTo: window.location.origin } });
+
   return (
     <motion.nav
       initial={{ y: -40, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.6, ease: "easeOut" }}
-      className="w-full px-10 py-5 bg-white/80 backdrop-blur-lg shadow-md flex justify-between items-center sticky top-0 z-50 border-b border-gray-200"
+      className="w-full px-6 py-4 bg-white/80 backdrop-blur-lg shadow-md flex justify-between items-center sticky top-0 z-50 border-b border-gray-200"
     >
       {/* Logo */}
-      <div className="flex items-center cursor-pointer">
-        <Link to="/" className="flex items-center">
-          {/* <img src={Logo} className="h-10 w-10 md:h-12 md:w-12 rounded-full" /> */}
-          <span className="ml-2 text-xl font-bold text-red-700">DishAI✨</span>
-        </Link>
-      </div>
+      <Link to="/" className="flex items-center">
+        <span className="text-xl font-bold text-red-700">DishAI✨</span>
+      </Link>
 
       {/* Desktop Menu */}
-      <ul className="hidden md:flex gap-10 text-[17px] font-semibold">
-        {navItems.map((item, index) => (
+      <ul className="hidden md:flex gap-8 items-center font-semibold">
+        {navItems.map((item, idx) => (
           <motion.li
-            key={index}
+            key={idx}
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.95 }}
             className="cursor-pointer transition hover:text-red-600"
@@ -55,32 +48,35 @@ export default function Navbar() {
             <Link to={item.link}>{item.name}</Link>
           </motion.li>
         ))}
-      </ul>
 
-      {/* Desktop Login/Logout */}
-      <ul className="hidden md:flex gap-3 items-center font-semibold">
-        {!isLoggedIn ? (
-          <motion.li
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.95 }}
-            className="cursor-pointer text-red-500 font-extrabold text-xl hover:text-red-600 transition"
-          >
-            <Link to="/login">Login</Link>
-          </motion.li>
-        ) : (
-          <motion.li
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.95 }}
-            className="cursor-pointer text-red-500 hover:text-red-800 transition font-extrabold font-sans text-xl"
-            onClick={handleLogout}
+        {/* Desktop Login/Logout */}
+        {isLoading ? null : isAuthenticated ? (
+          <button
+            onClick={logout}
+            className="ml-4 px-3 py-1 rounded-md bg-red-600 text-white font-semibold hover:bg-red-700 transition"
           >
             Logout
-          </motion.li>
+          </button>
+        ) : (
+          <>
+            <button
+              onClick={login}
+              className="ml-4 px-3 py-1 rounded-md bg-red-600 text-white font-semibold hover:bg-red-700 transition"
+            >
+              Login
+            </button>
+            <button
+              onClick={signup}
+              className="ml-2 px-3 py-1 rounded-md bg-green-600 text-white font-semibold hover:bg-green-700 transition"
+            >
+              Signup
+            </button>
+          </>
         )}
       </ul>
 
       {/* Mobile Toggle */}
-      <div className="md:hidden cursor-pointer" onClick={() => setOpen(!open)}>
+      <div className="md:hidden cursor-pointer z-50" onClick={() => setOpen(!open)}>
         {open ? <X size={28} /> : <Menu size={28} />}
       </div>
 
@@ -92,39 +88,51 @@ export default function Navbar() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
             transition={{ duration: 0.3 }}
-            className="absolute top-[72px] left-0 w-full bg-white/90 backdrop-blur-xl shadow-lg md:hidden p-5"
+            className="absolute top-full left-0 w-full bg-white/90 backdrop-blur-xl shadow-lg md:hidden p-6 flex flex-col gap-4"
           >
-            <ul className="flex flex-col gap-6 text-lg font-medium">
-              {navItems.map((item, index) => (
-                <li
-                  key={index}
-                  className="cursor-pointer transition hover:text-blue-600"
-                  onClick={() => setOpen(false)}
-                >
-                  <Link to={item.link}>{item.name}</Link>
-                </li>
-              ))}
+            {navItems.map((item, idx) => (
+              <Link
+                key={idx}
+                to={item.link}
+                onClick={() => setOpen(false)}
+                className="text-lg font-medium hover:text-red-600 transition"
+              >
+                {item.name}
+              </Link>
+            ))}
 
-              {/* Mobile Login/Logout */}
-              {!isLoggedIn ? (
-                <li
-                  className="cursor-pointer text-red-400 hover:text-red-600 transition font-extrabold"
-                  onClick={() => setOpen(false)}
-                >
-                  <Link to="/login">Login</Link>
-                </li>
-              ) : (
-                <li
-                  className="cursor-pointer text-red-500 hover:text-blue-800 transition font-extrabold"
+            {isLoading ? null : isAuthenticated ? (
+              <button
+                onClick={() => {
+                  logout();
+                  setOpen(false);
+                }}
+                className="px-3 py-1 rounded-md bg-red-600 text-white font-semibold hover:bg-red-700 transition"
+              >
+                Logout
+              </button>
+            ) : (
+              <>
+                <button
                   onClick={() => {
-                    handleLogout();
+                    login();
                     setOpen(false);
                   }}
+                  className="px-3 py-1 rounded-md bg-red-600 text-white font-semibold hover:bg-red-700 transition"
                 >
-                  Logout
-                </li>
-              )}
-            </ul>
+                  Login
+                </button>
+                <button
+                  onClick={() => {
+                    signup();
+                    setOpen(false);
+                  }}
+                  className="px-3 py-1 rounded-md bg-green-600 text-white font-semibold hover:bg-green-700 transition"
+                >
+                  Signup
+                </button>
+              </>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
